@@ -19,6 +19,19 @@ function copyDir(src: string, dest: string): void {
   }
 }
 
+function syncWebData(src: string, dest: string): void {
+  const sourceIndex = path.join(src, "index.html");
+  const targetIndex = path.join(dest, "index.html");
+  const sourceSize = fs.existsSync(sourceIndex) ? fs.statSync(sourceIndex).size : -1;
+  const targetSize = fs.existsSync(targetIndex) ? fs.statSync(targetIndex).size : -2;
+  const sameIndex = sourceSize === targetSize && sourceSize >= 0 && fs.readFileSync(sourceIndex).equals(fs.readFileSync(targetIndex));
+
+  if (!sameIndex) {
+    fs.rmSync(dest, { recursive: true, force: true });
+    copyDir(src, dest);
+  }
+}
+
 declare const __APP_VERSION__: string;
 
 function compareVersions(a: string, b: string): number {
@@ -57,6 +70,10 @@ function initializeData(): void {
 
   for (const dir of TARGET_ENTRIES) {
     const targetDir = path.join(destDir, dir);
+    if (dir === "web") {
+      syncWebData(path.join(srcDir, dir), targetDir);
+      continue;
+    }
     if (shouldForceReplace) {
       fs.rmSync(targetDir, { recursive: true, force: true });
       copyDir(path.join(srcDir, dir), targetDir);
